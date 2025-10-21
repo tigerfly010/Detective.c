@@ -2,86 +2,107 @@
 #include <stdlib.h>
 #include <string.h>
 
-// ---------------------- DEFINIÇÃO DA ESTRUTURA ----------------------
-
+// Estrutura para os cômodos da mansão (árvore binária)
 typedef struct Sala {
     char nome[50];
+    char pista[100]; // pode estar vazia se não houver pista
     struct Sala* esquerda;
     struct Sala* direita;
 } Sala;
 
-// ---------------------- FUNÇÕES ----------------------
+// Estrutura para as pistas coletadas (BST)
+typedef struct PistaNode {
+    char pista[100];
+    struct PistaNode* esquerda;
+    struct PistaNode* direita;
+} PistaNode;
 
-
-Sala* criarSala(const char* nome) {
-    Sala* nova = (Sala*)malloc(sizeof(Sala));
-    strcpy(nova->nome, nome);
-    nova->esquerda = NULL;
-    nova->direita = NULL;
-    return nova;
+// Função para criar uma nova sala
+Sala* criarSala(const char* nome, const char* pista) {
+    Sala* novaSala = (Sala*)malloc(sizeof(Sala));
+    strcpy(novaSala->nome, nome);
+    if (pista != NULL)
+        strcpy(novaSala->pista, pista);
+    else
+        novaSala->pista[0] = '\0';
+    novaSala->esquerda = NULL;
+    novaSala->direita = NULL;
+    return novaSala;
 }
 
-
-void explorarSalas(Sala* atual) {
-    while (atual != NULL) {
-        printf("\nVocê está na sala: %s\n", atual->nome);
-
-        o
-        if (atual->esquerda == NULL && atual->direita == NULL) {
-            printf("🔚 Não há mais caminhos. Fim da exploração!\n");
-            break;
-        }
-
-        printf("Escolha o caminho: (e) esquerda, (d) direita, (s) sair: ");
-        char escolha;
-        scanf(" %c", &escolha);
-
-        if (escolha == 'e' || escolha == 'E') {
-            if (atual->esquerda != NULL) {
-                atual = atual->esquerda;
-            } else {
-                printf("⚠️  Não há sala à esquerda!\n");
-            }
-        } else if (escolha == 'd' || escolha == 'D') {
-            if (atual->direita != NULL) {
-                atual = atual->direita;
-            } else {
-                printf("⚠️  Não há sala à direita!\n");
-            }
-        } else if (escolha == 's' || escolha == 'S') {
-            printf("👋 Saindo da exploração...\n");
-            break;
-        } else {
-            printf("⚠️  Opção inválida! Tente novamente.\n");
-        }
-    }
+// Função para criar um novo nó de pista
+PistaNode* criarPista(const char* pista) {
+    PistaNode* novo = (PistaNode*)malloc(sizeof(PistaNode));
+    strcpy(novo->pista, pista);
+    novo->esquerda = NULL;
+    novo->direita = NULL;
+    return novo;
 }
 
+// Inserir pista na BST
+PistaNode* inserirPista(PistaNode* raiz, const char* pista) {
+    if (raiz == NULL) return criarPista(pista);
 
-void liberarMansao(Sala* raiz) {
+    if (strcmp(pista, raiz->pista) < 0)
+        raiz->esquerda = inserirPista(raiz->esquerda, pista);
+    else if (strcmp(pista, raiz->pista) > 0)
+        raiz->direita = inserirPista(raiz->direita, pista);
+    // se já existe, não insere duplicata
+    return raiz;
+}
+
+// Percurso em ordem para exibir pistas
+void exibirPistas(PistaNode* raiz) {
     if (raiz != NULL) {
-        liberarMansao(raiz->esquerda);
-        liberarMansao(raiz->direita);
-        free(raiz);
+        exibirPistas(raiz->esquerda);
+        printf("- %s\n", raiz->pista);
+        exibirPistas(raiz->direita);
     }
 }
 
-// ---------------------- MAIN ----------------------
+// Função para explorar a mansão e coletar pistas
+void explorarSalasComPistas(Sala* salaAtual, PistaNode** pistas) {
+    if (salaAtual == NULL) return;
+
+    printf("\nVocê está na sala: %s\n", salaAtual->nome);
+    if (strlen(salaAtual->pista) > 0) {
+        printf("Você encontrou uma pista: %s\n", salaAtual->pista);
+        *pistas = inserirPista(*pistas, salaAtual->pista);
+    }
+
+    char opcao;
+    printf("Escolha o caminho: esquerda (e), direita (d), sair (s): ");
+    scanf(" %c", &opcao);
+
+    if (opcao == 'e')
+        explorarSalasComPistas(salaAtual->esquerda, pistas);
+    else if (opcao == 'd')
+        explorarSalasComPistas(salaAtual->direita, pistas);
+    else if (opcao == 's')
+        return;
+    else {
+        printf("Opção inválida! Tente novamente.\n");
+        explorarSalasComPistas(salaAtual, pistas);
+    }
+}
 
 int main() {
-    
-    Sala* hall = criarSala("Hall de entrada");
-    hall->esquerda = criarSala("Sala de estar");
-    hall->direita = criarSala("Cozinha");
-    hall->esquerda->esquerda = criarSala("Biblioteca");
-    hall->esquerda->direita = criarSala("Quarto");
-    hall->direita->esquerda = criarSala("Jardim");
-    hall->direita->direita = criarSala("Garagem");
+    // Criando o mapa da mansão
+    Sala* hall = criarSala("Hall de Entrada", "Chave perdida");
+    hall->esquerda = criarSala("Sala de Estar", "Livro com página faltando");
+    hall->direita = criarSala("Cozinha", "");
+    hall->esquerda->esquerda = criarSala("Biblioteca", "Gaveta perdida");
+    hall->esquerda->direita = criarSala("Quarto", "Lençol manchado");
+    hall->direita->esquerda = criarSala("Jardim", "");
+    hall->direita->direita = criarSala("Despensa", "Pegadas de lama");
 
-    printf("🏠 Bem-vindo(a) à mansão do Detective Quest!\n");
+    PistaNode* minhasPistas = NULL;
 
-    explorarSalas(hall);  
+    printf("=== Bem-vindo ao Detective Quest ===\n");
+    explorarSalasComPistas(hall, &minhasPistas);
 
-    liberarMansao(hall);  
+    printf("\n=== Pistas coletadas em ordem alfabética ===\n");
+    exibirPistas(minhasPistas);
+
     return 0;
 }
